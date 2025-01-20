@@ -13,6 +13,31 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
+
+const languageLogos = {
+  JavaScript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
+  TypeScript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
+  Python: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+  Java: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
+  C: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg",
+  "C++": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg",
+  "C#": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg",
+  PHP: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg",
+  Ruby: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ruby/ruby-original.svg",
+  Go: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg",
+  Kotlin: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg",
+  Swift: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg",
+  HTML: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
+  CSS: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
+  Dart: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg",
+  PowerShell: "https://upload.wikimedia.org/wikipedia/commons/2/2f/PowerShell_5.0_icon.png", // Alternativa por não haver no devicon
+  SCSS: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sass/sass-original.svg",
+  SQL: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg", // Usando MySQL para representar SQL
+  TSQL: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg", // Usando MySQL para representar SQL
+  Vue: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vuejs/vuejs-original.svg",
+};
+
+
 const Dashboard = () => {
   const [username, setUsername] = useState("");
   const [repositories, setRepositories] = useState([]);
@@ -25,8 +50,8 @@ const Dashboard = () => {
 
   const ITEMS_PER_PAGE = 6; // Quantidade de repositórios por página
 
-  // Função para buscar repositórios do GitHub
-  const fetchRepositories = async () => {
+  // Função para buscar todos os repositórios
+  const fetchAllRepositories = async () => {
     setLoading(true);
     setError("");
     setRepositories([]);
@@ -35,21 +60,30 @@ const Dashboard = () => {
     setPage(1);
 
     try {
-      const response = await fetch(
-        `https://api.github.com/users/${username}/repos?per_page=100`
-      );
-      if (!response.ok) {
-        throw new Error("Usuário não encontrado ou erro na requisição.");
-      }
-      const data = await response.json();
+      let page = 1;
+      let allRepos = [];
+      let fetchMore = true;
 
-      // Obtendo as linguagens disponíveis
-      const uniqueLanguages = [...new Set(data.map((repo) => repo.language))].filter(
+      while (fetchMore) {
+        const response = await fetch(
+          `https://api.github.com/users/${username}/repos?per_page=100&page=${page}`
+        );
+        if (!response.ok) {
+          throw new Error("Usuário não encontrado ou erro na requisição.");
+        }
+        const data = await response.json();
+        allRepos = [...allRepos, ...data];
+        fetchMore = data.length === 100; // Se a resposta tiver menos de 100 itens, já obteve tudo
+        page++;
+      }
+
+      // Obter linguagens únicas
+      const uniqueLanguages = [...new Set(allRepos.map((repo) => repo.language))].filter(
         (lang) => lang !== null
       );
 
-      setRepositories(data);
-      setFilteredRepos(data);
+      setRepositories(allRepos);
+      setFilteredRepos(allRepos);
       setLanguages(uniqueLanguages);
     } catch (err) {
       setError(err.message);
@@ -58,7 +92,7 @@ const Dashboard = () => {
     }
   };
 
-  // Filtrar repositórios por linguagem
+  // Filtrar por linguagem
   const filterByLanguage = (language) => {
     setSelectedLanguage(language);
     setPage(1);
@@ -93,7 +127,7 @@ const Dashboard = () => {
         />
         <Button
           variant="contained"
-          onClick={fetchRepositories}
+          onClick={fetchAllRepositories}
           disabled={!username || loading}
         >
           {loading ? "Carregando..." : "Buscar"}
@@ -141,9 +175,18 @@ const Dashboard = () => {
                 <Typography variant="body2" color="text.secondary">
                   🌟 Estrelas: {repo.stargazers_count} | 🍴 Forks: {repo.forks_count}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  🛠️ Linguagem: {repo.language || "Não especificada"}
-                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                  {languageLogos[repo.language] && (
+                    <img
+                      src={languageLogos[repo.language]}
+                      alt={repo.language}
+                      style={{ width: 20, height: 20, marginRight: 8 }}
+                    />
+                  )}
+                  <Typography variant="body2" color="text.secondary">
+                    🛠️ Linguagem: {repo.language || "Não especificada"}
+                  </Typography>
+                </Box>
               </CardContent>
               <CardActions>
                 <Button
